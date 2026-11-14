@@ -1,5 +1,8 @@
 ## ZPA Forms Extractor
 
+[![Build](https://github.com/felipebz/zpa-forms-extractor/actions/workflows/build.yml/badge.svg?branch=main)](https://github.com/felipebz/zpa-forms-extractor/actions/workflows/build.yml)
+[![Quality Gate Status](https://sonarqube.felipebz.com/api/project_badges/measure?project=com.felipebz.zpa%3Azpa-forms-extractor&metric=alert_status)](https://sonarqube.felipebz.com/dashboard?id=com.felipebz.zpa%3Azpa-forms-extractor)
+
 This extractor uses the Oracle Forms JDAPI library to open the Forms modules, therefore an installation of Oracle Forms Builder is required.
 
 # How to build
