@@ -3,7 +3,7 @@ kotlin = "2.4.21"
 jreleaser = "1.27.0"
 # The JGit version JReleaser depends on; see buildscript in build.gradle.kts.
 jgit = "5.13.5.202508271544-r"
-spotless = "8.10.4"
+spotless = "8.11.0"
 sonarscanner = "7.5.0.8588"
 
 # libs
