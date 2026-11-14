@@ -1,0 +1,24 @@
+[versions]
+kotlin = "2.4.21"
+jreleaser = "1.27.0"
+spotless = "8.10.4"
+sonarscanner = "7.5.0.8588"
+
+# libs
+clikt = "2.8.0"
+gson = "2.15.0"
+
+# testing
+assertj = "3.27.7"
+
+[libraries]
+clikt = { module = "com.github.ajalt:clikt", version.ref = "clikt" }
+gson = { module = "com.google.code.gson:gson", version.ref = "gson" }
+
+assertj = { module = "org.assertj:assertj-core", version.ref = "assertj" }
+
+[plugins]
+jreleaser = { id = "org.jreleaser", version.ref = "jreleaser" }
+kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
+sonarqube = { id = "org.sonarqube", version.ref = "sonarscanner" }
+spotless = { id = "com.diffplug.spotless", version.ref = "spotless" }

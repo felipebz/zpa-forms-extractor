@@ -5,11 +5,11 @@ group = "com.felipebz.zpa"
 version = "1.0.0-SNAPSHOT"
 
 plugins {
-    kotlin("jvm").version("2.4.21")
+    alias(libs.plugins.kotlin.jvm)
     application
-    id("org.jreleaser") version "1.27.0"
-    id("com.diffplug.spotless") version "8.10.4"
-    id("org.sonarqube") version "7.5.0.8588"
+    alias(libs.plugins.jreleaser)
+    alias(libs.plugins.spotless)
+    alias(libs.plugins.sonarqube)
 }
 
 sonar {
@@ -45,12 +45,12 @@ repositories {
 
 dependencies {
     compileOnly(fileTree("libs").include("*.jar"))
-    implementation("com.github.ajalt:clikt:2.8.0")
-    implementation("com.google.code.gson:gson:2.15.0")
+    implementation(libs.clikt)
+    implementation(libs.gson)
     implementation(kotlin("stdlib-jdk8"))
     testImplementation(kotlin("test"))
     testImplementation(kotlin("test-junit"))
-    testImplementation("org.assertj:assertj-core:3.27.7")
+    testImplementation(libs.assertj)
 }
 
 configurations {
