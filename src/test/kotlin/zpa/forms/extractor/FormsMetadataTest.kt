@@ -47,6 +47,9 @@ class FormsMetadataTest {
         )
         assertThat(metadata.lovs).containsExactly("LOV1", "LOV2")
         assertThat(metadata.parameters).containsExactly(ParameterData("P1", "NUMBER"))
+        assertThat(MetadataFormat.LEGACY.toJson(metadata)).isEqualTo(
+            """{"alerts":["ALR1","ALR2"],"blocks":[{"name":"BLK1","items":["ITEM1","ITEM2","BTN","DT"]}],"lovs":["LOV1","LOV2"]}"""
+        )
 
         formModule.destroy()
     }

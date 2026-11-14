@@ -23,10 +23,14 @@ Copy the JDAPI jar from your Oracle Forms installation (`f60jdapi.jar`, `f90jdap
 Usage: zpa-forms-extractor [OPTIONS]
 
 Options:
-  --input PATH        Oracle Forms module (.fmb, .mmb, .pll, .olb) or
-                      directory searched recursively; repeatable
-  --output DIRECTORY  output directory
-  -h, --help          Show this message and exit
+  --input PATH                     Oracle Forms module (.fmb, .mmb, .pll,
+                                   .olb) or directory searched recursively;
+                                   repeatable
+  --output DIRECTORY               output directory
+  --metadata-format [full|legacy]  metadata.json format: full (default) or
+                                   legacy, for ZPA 4.2 and older (no
+                                   parameters, item names only)
+  -h, --help                       Show this message and exit
 ```
 
 Each module is extracted to its own folder below `--output`. A module given directly uses its file name (`--input forms/orders.fmb` → `orders.fmb/`). A module found in a directory keeps its path relative to that directory (`--input forms` finds `forms/sub/orders.fmb` → `sub/orders.fmb/`). A module that fails to extract is reported and skipped, the remaining modules are still extracted, and the exit code is 1. Existing files in `--output` are overwritten but never deleted.
@@ -47,5 +51,7 @@ Each module is extracted to its own folder below `--output`. A module given dire
   menus/<MENU>/<MENU_ITEM>.tgg
   menus/<MENU_ITEM>.tgg                         Object Library menu items outside a menu
 ```
+
+`metadata.json` is written in the `full` format by default. ZPA 4.2 and older reject its new fields; for them, pass `--metadata-format legacy`, which writes only alerts, block and item names, and LOVs.
 
 Triggers, menu item code and startup code are wrapped in `BEGIN … END;`, so every `.tgg` file is a complete anonymous block.

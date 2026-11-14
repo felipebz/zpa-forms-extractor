@@ -7,11 +7,12 @@ package zpa.forms.extractor
 
 import com.github.ajalt.clikt.core.CliktCommand
 import com.github.ajalt.clikt.core.ProgramResult
+import com.github.ajalt.clikt.parameters.options.default
 import com.github.ajalt.clikt.parameters.options.multiple
 import com.github.ajalt.clikt.parameters.options.option
 import com.github.ajalt.clikt.parameters.options.required
+import com.github.ajalt.clikt.parameters.types.choice
 import com.github.ajalt.clikt.parameters.types.file
-import com.google.gson.Gson
 import oracle.forms.jdapi.FormModule
 import oracle.forms.jdapi.Jdapi
 import oracle.forms.jdapi.JdapiException
@@ -26,6 +27,10 @@ class Main : CliktCommand(name = "zpa-forms-extractor") {
         help = "Oracle Forms module (.fmb, .mmb, .pll, .olb) or directory searched recursively; repeatable"
     ).file(mustExist = true).multiple(required = true)
     private val output by option("--output", help = "output directory").file(canBeFile = false).required()
+    private val metadataFormat by option(
+        "--metadata-format",
+        help = "metadata.json format: full (default) or legacy, for ZPA 4.2 and older (no parameters, item names only)"
+    ).choice("full" to MetadataFormat.FULL, "legacy" to MetadataFormat.LEGACY).default(MetadataFormat.FULL)
 
     override fun run() {
         val modules = findModules(inputs)
@@ -78,7 +83,7 @@ class Main : CliktCommand(name = "zpa-forms-extractor") {
         try {
             val files = extractSources(module).toMutableList()
             if (module is FormModule) {
-                files += SourceFile(emptyList(), "metadata.json", Gson().toJson(FormsMetadata(module)))
+                files += SourceFile(emptyList(), "metadata.json", metadataFormat.toJson(FormsMetadata(module)))
             }
             writeSources(moduleDir, files)
         } finally {

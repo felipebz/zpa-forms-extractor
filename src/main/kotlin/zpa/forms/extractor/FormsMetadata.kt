@@ -5,6 +5,7 @@
 
 package zpa.forms.extractor
 
+import com.google.gson.Gson
 import oracle.forms.jdapi.*
 
 class FormsMetadata(module: FormModule) {
@@ -27,6 +28,28 @@ class FormsMetadata(module: FormModule) {
 data class BlockData(val name: String, val items: List<ItemData>)
 data class ItemData(val name: String, val dataType: String? = null, val maxLength: Int? = null)
 data class ParameterData(val name: String, val dataType: String?)
+
+enum class MetadataFormat {
+    FULL {
+        override fun toJson(metadata: FormsMetadata): String = Gson().toJson(metadata)
+    },
+
+    /** What ZPA 4.2 and older read: Jackson there rejects unknown fields and expects items as plain names. */
+    LEGACY {
+        override fun toJson(metadata: FormsMetadata): String = Gson().toJson(
+            LegacyFormsMetadata(
+                metadata.alerts,
+                metadata.blocks.map { block -> LegacyBlockData(block.name, block.items.map { it.name }) },
+                metadata.lovs
+            )
+        )
+    };
+
+    abstract fun toJson(metadata: FormsMetadata): String
+}
+
+private class LegacyFormsMetadata(val alerts: List<String>, val blocks: List<LegacyBlockData>, val lovs: List<String>)
+private class LegacyBlockData(val name: String, val items: List<String>)
 
 // JdapiTypes constants are runtime values, so these are built lazily after JDAPI is loaded
 private val VALUE_ITEM_TYPES by lazy {
