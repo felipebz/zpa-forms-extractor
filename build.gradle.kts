@@ -1,5 +1,17 @@
-
+import com.diffplug.spotless.LineEnding
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+
+buildscript {
+    dependencies {
+        constraints {
+            // Spotless and JReleaser share this class path. JReleaser needs JGit 5 (JGit 7 removed classes it uses), so
+            // the version is pinned to its own; Spotless does not load JGit with `LineEnding.PRESERVE` and no ratchet.
+            classpath("org.eclipse.jgit:org.eclipse.jgit") {
+                version { strictly(libs.versions.jgit.get()) }
+            }
+        }
+    }
+}
 
 group = "com.felipebz.zpa"
 version = "1.0.0-SNAPSHOT"
@@ -20,6 +32,7 @@ sonar {
 }
 
 spotless {
+    lineEndings = LineEnding.PRESERVE
     kotlin {
         target("src/**/*.kt")
         val lines = rootProject.file("LICENSE_HEADER").readLines().filter { it.isNotBlank() }
