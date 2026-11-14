@@ -1,3 +1,8 @@
+//
+// SPDX-FileCopyrightText: 2026 Felipe Zorzo
+// SPDX-License-Identifier: Apache-2.0
+//
+
 package zpa.forms.extractor
 
 import com.github.ajalt.clikt.core.CliktCommand

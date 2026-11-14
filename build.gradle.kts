@@ -8,6 +8,15 @@ plugins {
     kotlin("jvm").version("2.4.21")
     application
     id("org.jreleaser") version "1.27.0"
+    id("com.diffplug.spotless") version "8.10.4"
+}
+
+spotless {
+    kotlin {
+        target("src/**/*.kt")
+        val lines = rootProject.file("LICENSE_HEADER").readLines().filter { it.isNotBlank() }
+        licenseHeader(lines.joinToString("", prefix = "//\n", postfix = "//\n\n") { "// $it\n" })
+    }
 }
 
 java {
@@ -72,7 +81,7 @@ jreleaser {
     project {
         description.set("A code extractor for Oracle Forms modules.")
         authors.set(listOf("felipebz"))
-        license.set("LGPL-3.0")
+        license.set("Apache-2.0")
         links {
             homepage.set("https://zpa.felipebz.com")
         }
