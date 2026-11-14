@@ -14,7 +14,7 @@ buildscript {
 }
 
 group = "com.felipebz.zpa"
-version = "1.0.0-SNAPSHOT"
+version = providers.gradleProperty("version").get()
 
 plugins {
     alias(libs.plugins.kotlin.jvm)
@@ -107,15 +107,21 @@ jreleaser {
             homepage.set("https://zpa.felipebz.com")
         }
         inceptionYear.set("2019")
+        snapshot {
+            fullChangelog.set(true)
+        }
     }
+    // JReleaser only renders the changelog; the Release Please workflow tags and publishes the release.
     release {
         github {
-            overwrite.set(true)
-            draft.set(true)
+            tagName.set("{{projectVersion}}")
+            skipTag.set(true)
+            skipRelease.set(true)
+            token.set("changelog-only") // JReleaser validates the GitHub token even in changelog-only mode.
             changelog {
                 formatted.set(org.jreleaser.model.Active.ALWAYS)
                 preset.set("conventional-commits")
-                format.set("- {{commitShortHash}} {{commitTitle}}")
+                contentTemplate.set(file("template/changelog.tpl"))
                 contributors {
                     enabled.set(false)
                 }

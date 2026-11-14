@@ -1,0 +1,171 @@
+name: Release Please
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: 'Existing stable release tag (X.Y.Z, no "v" prefix) whose empty draft release should be published. Run from main.'
+        required: true
+        type: string
+
+permissions:
+  contents: write
+  issues: write
+  pull-requests: write
+
+jobs:
+  release_please:
+    name: Create or update Release Please draft
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    outputs:
+      release_created: ${{ steps.release.outputs.release_created }}
+      tag_name: ${{ steps.release.outputs.tag_name }}
+      version: ${{ steps.release.outputs.version }}
+      sha: ${{ steps.release.outputs.sha }}
+    steps:
+      - id: release
+        uses: googleapis/release-please-action@45996ed1f6d02564a971a2fa1b5860e934307cf7
+        with:
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json
+          token: ${{ github.token }}
+
+  publish:
+    name: Validate and publish stable release
+    needs: release_please
+    if: ${{ !cancelled() && ((github.event_name == 'push' && needs.release_please.result == 'success' && needs.release_please.outputs.release_created == 'true') || (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main')) }}
+    runs-on: ubuntu-latest
+    concurrency:
+      group: release-${{ needs.release_please.outputs.version || inputs.release_tag }}
+      cancel-in-progress: false
+    env:
+      RELEASE_VERSION: ${{ needs.release_please.outputs.version || inputs.release_tag }}
+      RELEASE_TAG: ${{ needs.release_please.outputs.tag_name || inputs.release_tag }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ needs.release_please.outputs.sha || format('refs/tags/{0}', inputs.release_tag) }}
+          fetch-depth: 0
+
+      - name: Verify exact release commit
+        env:
+          RELEASE_SHA: ${{ needs.release_please.outputs.sha }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ ${GITHUB_EVENT_NAME} == workflow_dispatch ]]; then
+            [[ ${RELEASE_TAG} =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || {
+              printf 'Release tag must be an unprefixed stable X.Y.Z: %s\n' "${RELEASE_TAG}" >&2
+              exit 1
+            }
+            RELEASE_SHA=$(git rev-parse "refs/tags/${RELEASE_TAG}^{commit}")
+            [[ $(git log -1 --format=%s HEAD) == "chore(main): release ${RELEASE_TAG}" ]] || {
+              printf 'Tag %s is not a Release Please release commit\n' "${RELEASE_TAG}" >&2
+              exit 1
+            }
+            git merge-base --is-ancestor HEAD origin/main || {
+              printf 'Tag %s is not in the history of main\n' "${RELEASE_TAG}" >&2
+              exit 1
+            }
+          fi
+          [[ ${RELEASE_SHA} =~ ^[0-9a-f]{40}$ ]] || {
+            printf 'Invalid release commit SHA: %s\n' "${RELEASE_SHA}" >&2
+            exit 1
+          }
+          [[ $(git rev-parse HEAD) == "${RELEASE_SHA}" ]] || {
+            printf 'Checked out commit does not match the release SHA\n' >&2
+            exit 1
+          }
+
+      - name: Verify existing release draft is empty
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          # The by-tag endpoint hides drafts, so list releases instead.
+          releases=$(gh api --paginate "repos/${GITHUB_REPOSITORY}/releases?per_page=100" \
+            | jq -s --arg tag "${RELEASE_TAG}" '[.[][] | select(.tag_name == $tag)]')
+          [[ $(jq -r 'length == 1 and .[0].draft and (.[0].assets | length == 0)' <<< "${releases}") == true ]] || {
+            printf 'Expected exactly one draft release for %s with no assets; remove partial assets manually: %s\n' "${RELEASE_TAG}" "$(jq -c 'map({draft, assets: (.assets | length)})' <<< "${releases}")" >&2
+            exit 1
+          }
+
+      - uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6
+        with:
+          distribution: temurin
+          java-version: |
+            8
+            25
+
+      - name: Get frmjdapi.jar
+        run: |
+          curl '${{ secrets.FRMJDAPI_URL }}' -o libs/frmjdapi.jar
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@8da46b539cd8fe6ab27ca75128919a18d757604c # v6
+
+      - name: Validate stable release versions
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          project_version=$(./gradlew properties --console=plain | awk '$1 == "version:" { value=$2 } END { print value }')
+
+          [[ ${project_version} == "${RELEASE_VERSION}" ]] || {
+            printf 'Gradle project version %s does not match Release Please version %s\n' "${project_version}" "${RELEASE_VERSION}" >&2
+            exit 1
+          }
+          [[ ${RELEASE_TAG} == "${RELEASE_VERSION}" ]] || {
+            printf 'Release tag %s does not match release version %s\n' "${RELEASE_TAG}" "${RELEASE_VERSION}" >&2
+            exit 1
+          }
+          [[ ${RELEASE_VERSION} =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || {
+            printf 'Release version must be an unprefixed stable X.Y.Z: %s\n' "${RELEASE_VERSION}" >&2
+            exit 1
+          }
+          printf 'RELEASE_VERSION=%s\nRELEASE_TAG=%s\n' "${RELEASE_VERSION}" "${RELEASE_TAG}"
+
+      # The tests need the Oracle Forms native libraries, which the runner lacks.
+      - name: Build with Gradle
+        run: ./gradlew build -x test
+
+      - name: Verify release distributions
+        shell: bash
+        run: |
+          set -euo pipefail
+          for file in \
+            "build/distributions/zpa-forms-extractor-${RELEASE_VERSION}.zip" \
+            "build/distributions/zpa-forms-extractor-${RELEASE_VERSION}.tar"; do
+            [[ -f ${file} ]] || {
+              printf 'Expected release asset is missing: %s\n' "${file}" >&2
+              exit 1
+            }
+          done
+
+      - name: Render changelog
+        run: ./gradlew jreleaserChangelog
+
+      - name: Verify generated changelog
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Use the script from the workflow commit: a recovered tag predates the fixed one.
+          git show "${GITHUB_SHA}:.github/scripts/verify-release-changelog.sh" > "${RUNNER_TEMP}/verify-release-changelog.sh"
+          bash "${RUNNER_TEMP}/verify-release-changelog.sh"
+
+      - name: Publish GitHub release draft
+        uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64
+        with:
+          token: ${{ github.token }}
+          tag_name: ${{ env.RELEASE_TAG }}
+          body_path: build/jreleaser/release/CHANGELOG.md
+          fail_on_unmatched_files: true
+          files: |
+            build/distributions/zpa-forms-extractor-${{ env.RELEASE_VERSION }}.zip
+            build/distributions/zpa-forms-extractor-${{ env.RELEASE_VERSION }}.tar
