@@ -24,23 +24,27 @@ private class SourceCollector {
 
     fun collect(module: JdapiModule) {
         when (module) {
-            is FormModule -> {
-                for (o in module.programUnits) programUnit(o as ProgramUnit)
-                for (o in module.triggers) trigger(o as Trigger, listOf("triggers"))
-                for (o in module.blocks) block(o as Block)
-                for (o in module.propertyClasses) propertyClass(o as PropertyClass)
-                for (o in module.events) event(o as Event)
-                for (o in module.recordGroups) recordGroup(o as RecordGroup)
-                for (o in module.menus) menu(o as Menu)
-            }
-            is MenuModule -> {
-                add(emptyList(), "startup-code.tgg", module.startupCode, ::anonymousBlock)
-                for (o in module.programUnits) programUnit(o as ProgramUnit)
-                for (o in module.menus) menu(o as Menu)
-            }
+            is FormModule -> formModule(module)
+            is MenuModule -> menuModule(module)
             is PlsqlModule -> for (o in module.programUnits) programUnit(o as ProgramUnit)
             is ObjectLibrary -> for (o in module.objectLibraryObjects) libraryObject(o as JdapiObject)
         }
+    }
+
+    private fun formModule(module: FormModule) {
+        for (o in module.programUnits) programUnit(o as ProgramUnit)
+        for (o in module.triggers) trigger(o as Trigger, listOf("triggers"))
+        for (o in module.blocks) block(o as Block)
+        for (o in module.propertyClasses) propertyClass(o as PropertyClass)
+        for (o in module.events) event(o as Event)
+        for (o in module.recordGroups) recordGroup(o as RecordGroup)
+        for (o in module.menus) menu(o as Menu)
+    }
+
+    private fun menuModule(module: MenuModule) {
+        add(emptyList(), "startup-code.tgg", module.startupCode, ::anonymousBlock)
+        for (o in module.programUnits) programUnit(o as ProgramUnit)
+        for (o in module.menus) menu(o as Menu)
     }
 
     // Other Object Library object types (canvases, windows, alerts, visual attributes...) hold no code.
