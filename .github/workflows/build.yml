@@ -42,3 +42,39 @@ jobs:
         run: ./gradlew jreleaserFullRelease
         env:
           JRELEASER_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  sonar:
+    name: SonarQube analysis
+    permissions:
+      contents: read
+    needs: build
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: |
+            8
+            25
+
+      - name: Get frmjdapi.jar
+        run: |
+          curl '${{ secrets.FRMJDAPI_URL }}' -o libs/frmjdapi.jar
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v6
+
+      # The tests need the Oracle Forms native libraries, which the runner lacks: the analysis has no coverage.
+      - name: Prepare SonarQube analysis inputs
+        run: ./gradlew testClasses
+
+      - name: Run SonarQube Scanner
+        run: ./gradlew sonar
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}

@@ -9,6 +9,14 @@ plugins {
     application
     id("org.jreleaser") version "1.27.0"
     id("com.diffplug.spotless") version "8.10.4"
+    id("org.sonarqube") version "7.5.0.8588"
+}
+
+sonar {
+    properties {
+        property("sonar.projectKey", "com.felipebz.zpa:zpa-forms-extractor")
+        property("sonar.projectName", "ZPA Forms Extractor")
+    }
 }
 
 spotless {
