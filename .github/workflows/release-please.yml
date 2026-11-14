@@ -20,7 +20,7 @@ jobs:
   release_please:
     name: Create or update Release Please draft
     if: github.event_name == 'push'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     outputs:
       release_created: ${{ steps.release.outputs.release_created }}
       tag_name: ${{ steps.release.outputs.tag_name }}
@@ -38,7 +38,7 @@ jobs:
     name: Validate and publish stable release
     needs: release_please
     if: ${{ !cancelled() && ((github.event_name == 'push' && needs.release_please.result == 'success' && needs.release_please.outputs.release_created == 'true') || (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main')) }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     concurrency:
       group: release-${{ needs.release_please.outputs.version || inputs.release_tag }}
       cancel-in-progress: false
