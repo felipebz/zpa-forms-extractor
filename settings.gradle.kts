@@ -7,4 +7,8 @@
  * in the user guide at https://docs.gradle.org/5.1/userguide/multi_project_builds.html
  */
 
+plugins {
+    id("org.gradle.toolchains.foojay-resolver-convention") version "1.0.0"
+}
+
 rootProject.name = "zpa-forms-extractor"
